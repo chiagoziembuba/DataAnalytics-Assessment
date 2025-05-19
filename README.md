@@ -26,3 +26,32 @@ Finally, in the main <b>SELECT</b> statement, I categorized the customers based 
 <br><br>
 <strong>Q3. Account Inactivity Alert</strong>
 <br><br>
+"This SQL query aims to identify plans that have been active within the last year. My strategy involves joining the <b>plans_plan table</b> with the <b>savings_savingsaccount</b> table to determine the last transaction date for each plan.
+<br><br>
+First, I selected the <b>plan_id</b> and <b>owner_id</b> directly from the <b>plans_plan</b> table. To provide a more human-readable classification, I used a <b>CASE</b> statement on the <b>plan_type_id</b> to categorize each plan as <b>'Savings', 'Investment',</b> or <b>'Other'</b>, creating a derived type column.
+<br><br>
+Next, to determine the last activity date, I utilized the <b>COALESCE</b> function in conjunction with the aggregate function <b>MAX(s.transaction_date)</b>. The <b>MAX</b> function helped me to find the latest transaction date for each plan from the joined <b>savings_savingsaccount</b> table. If a plan has no transactions, <b>MAX(s.transaction_date)</b> would return <b>NULL</b>, and <b>COALESCE</b> then substitutes the plan's <b>created_on</b> date from the <b>plans_plan</b> table as the <b>last_transaction_date</b>.
+<br><br>
+Following this, I then calculated the <b>inactivity_days</b> by finding the difference in days between the current date <b>(CURRENT_DATE)</b> and the <b>last_transaction_date</b>.
+<br><br>
+The <b>FROM</b> and <b>LEFT JOIN</b> clauses specified the tables involved and how they were related. I used a <b>LEFT JOIN</b> to ensure that all the plans from the <b>plans_plan</b> table were included in the result, even if they don't have any corresponding entries in <b>savings_savingsaccount</b>.
+<br><br>
+The <b>WHERE</b> clause filters the plans to include only those with a <b>status_id</b> of 1, which likely represents <b>'active'</b> plans.
+<br><br>
+The <b>GROUP BY</b> clause was essential for using the aggregate function <b>MAX()</b>. I grouped the results by the non-aggregated columns: <b>p.id, p.owner_id, p.plan_type_id,</b> and <b>p.created_on</b>, to get the last transaction date per plan.
+<br><br>
+Finally, the <b>HAVING</b> clause filters the grouped results further, keeping only those plans where the calculated <b>inactivity_days</b> is less than 365. This effectively identified plans that have had some activity (either a transaction or were created) within the last year. The <b>ORDER BY</b> clause then sorts the results by <b>plan_id</b> for easier readability."
+<br><br>
+<strong>Q4. Customer Lifetime Value (CLV) Estimation</strong>
+<br><br>
+This particular SQL query aims to estimate a simplified <b>Customer Lifetime Value (CLV)</b> for each customer based on their account tenure and total transaction volume. My approach involves joining the <b>users_customuser</b> table with the <b>savings_savingsaccount</b> table to link customer information with their transaction history.
+<br><br>
+First, I had to calculate the <b>tenure_months</b> for each customer. To do this, I found the difference in days between the current date <b>(CURDATE())</b> and the date they joined <b>(u.date_joined)</b> using the <b>DATEDIFF</b> function. Then, I approximated this tenure in months by dividing the number of days by <b>30.44</b> (an average number of days in a month) and using the <b>FLOOR</b> function to get a whole number of months.
+<br><br>
+Next, I had to determine the <b>total_transactions</b> for each customer by using the <b>COUNT</b> aggregate function on the <b>savings_id</b> from the joined <b>savings_savingsaccount</b> table. This counts all transactions associated with each customer.
+<br><br>
+The core of this query is the <b>estimated_clv</b> calculation. I implemented the provided simplified CLV formula: <b>(total_transactions / tenure) * 12 * avg_profit_per_transaction</b>. Here, I used the calculated <b>total_transactions</b> and <b>tenure_months</b>. The division of <b>total_transactions</b> by <b>tenure_months</b> gives an average transaction rate per month. This is then multiplied by <b>12</b> to annualize it. Finally, I multiplied it by the <b>AVG(s.amount * 0.001)</b>, which represents the <b>assumed average profit per transaction (0.1% of the transaction amount)</b>.
+<br><br>
+The <b>FROM</b> and <b>JOIN</b> clauses specify the tables and the linking condition <b>(u.id = s.owner_id)</b>. The <b>GROUP BY</b> clause is crucial for performing the aggregate calculations <b>(COUNT and AVG)</b> at the customer level, ensuring that we get one <b>CLV</b> estimate per customer. The grouping is done by <b>u.id, u.username</b>, and <b>u.date_joined</b>.
+<br><br>
+Finally, the ORDER BY <b>estimated_clv</b> DESC clause sorts the resulting customer list based on their estimated <b>CLV</b>, presenting the customers with the highest estimated lifetime value first. This allows for easy identification of potentially high-value customers.
